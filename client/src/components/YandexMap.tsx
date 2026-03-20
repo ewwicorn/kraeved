@@ -37,7 +37,7 @@ const YandexMap: React.FC<YandexMapProps> = ({
   });
 
     mapRef.current.addChild(new YMapDefaultSchemeLayer({}));
-    mapRef.current.addChild(new YMapDefaultFeaturesLayer({}));
+mapRef.current.addChild(new YMapDefaultFeaturesLayer({}));
 
   setIsLoaded(true);
   onLoad?.();
