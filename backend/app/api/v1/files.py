@@ -1,4 +1,5 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+
 from app.services.minio_service import MinioService
 from app.models.user import User
 from app.core.dependencies import get_current_user
@@ -71,8 +72,7 @@ async def upload_file(
 
 @router.get("/url/{object_name:path}")
 async def get_file_url(
-    object_name: str,
-    current_user: User = Depends(get_current_user),
+    object_name: str
 ):
     """Get file URL (permanent for photos/videos, presigned for other files)."""
     try:
