@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from app.exceptions import LocationNotFoundError, LocationSlugAlreadyExistsError, LocationTagsNotFoundError
+from app.core.enums import LocationType
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException, status
@@ -84,6 +85,7 @@ class LocationService:
             address=data.address,
             region=data.region,
             photos=data.photos,
+            location_type=LocationType(data.location_type),
             price_from=data.price_from,
             price_to=data.price_to,
             seller_id=seller_id,

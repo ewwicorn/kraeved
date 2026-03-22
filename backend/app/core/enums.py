@@ -58,3 +58,11 @@ class NotificationType(str, enum.Enum):
     moderation_rejected  = "moderation_rejected"
     new_review           = "new_review"
     new_message          = "new_message"
+
+class LocationType(str, enum.Enum):
+    wine      = "wine"
+    track     = "track"
+    mountains = "mountains"
+    farm      = "farm"
+    eco       = "eco"
+    default   = "default"

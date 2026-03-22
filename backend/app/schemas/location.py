@@ -26,6 +26,7 @@ class LocationCreate(BaseModel):
     address: Optional[str] = None
     region: str = "Краснодарский край"
     photos: list[str] = []
+    location_type: Optional[str] = None
     price_from: Optional[int] = None
     price_to: Optional[int] = None
     tag_ids: list[UUID] = []
@@ -47,6 +48,7 @@ class LocationUpdate(BaseModel):
     lng: Optional[float] = None
     address: Optional[str] = None
     photos: Optional[list[str]] = None
+    location_type: Optional[str] = None
     price_from: Optional[int] = None
     price_to: Optional[int] = None
     tag_ids: Optional[list[UUID]] = None
@@ -74,6 +76,7 @@ class LocationOut(BaseModel):
     short_description: Optional[str] = None
     lat: float
     lng: float
+    location_type: Optional[str] = None
     address: Optional[str] = None
     region: str
     photos: list[str]

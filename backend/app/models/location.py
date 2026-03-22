@@ -15,8 +15,6 @@ location_tag_association = Table(
 
 
 class Tag(Base):
-    """Location category tag for filtering and organization."""
-
     __tablename__ = "tags"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -27,8 +25,6 @@ class Tag(Base):
 
 
 class Location(Base):
-    """Tourism location/attraction with pricing and availability details."""
-
     __tablename__ = "locations"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -39,6 +35,7 @@ class Location(Base):
     lat = Column(Float, nullable=False)
     lng = Column(Float, nullable=False)
     address = Column(String(500), nullable=True)
+    location_type = Column(String(50), nullable=True)
     region = Column(String(100), nullable=True, default="Краснодарский край")
     photos = Column(ARRAY(Text), nullable=False, default=list)
     price_from = Column(Integer, nullable=True)

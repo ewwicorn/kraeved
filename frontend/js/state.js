@@ -2,7 +2,7 @@
 
 const S = {
   loggedIn: false,
-  user: null,          // { id, name, email, avatar, first_name, last_name, role }
+  user: null,
   obDone: false,
   wishlist: [],
   interactions: 0,
@@ -22,11 +22,9 @@ const S = {
   swapIdx: 0,
   tourPts: [],
 
-  // Кэш постов из API (чтобы не грузить каждый раз)
   _apiPosts: [],
   _apiPostsLoaded: false,
-  // Маппинг slug → UUID для API-локаций
-  _apiLocMap: {}, // { slug: uuid }
+  _apiLocMap: {},
 };
 
 /* ── Персистентность ── */
@@ -52,7 +50,6 @@ function saveS() {
   } catch (e) {}
 }
 
-/* ── Вспомогательная функция для категорий тегов ── */
 function catFromTags(tags) {
   const map = {
     Вино:'wine', Гастро:'gastro', Ферма:'gastro', Природа:'nature',
@@ -63,17 +60,14 @@ function catFromTags(tags) {
   return 'nature';
 }
 
-/* ── Получить все посты (статика + API-посты) ── */
+/* Теперь возвращает только API-посты — заглушек больше нет */
 function getAllPosts() {
-  // API-посты первыми (новее), статика после
-  return [...S._apiPosts, ...POSTS];
+  return [...S._apiPosts];
 }
 
-/* ── Загрузить посты из API (с кэшированием) ── */
 async function loadApiPosts(force) {
   if (S._apiPostsLoaded && !force) return;
   try {
-    // Загружаем локации из API для маппинга slug → UUID
     try {
       const locsRes = await apiLocations({ page_size: 100 });
       const apiLocs = locsRes.items || locsRes || [];
@@ -82,13 +76,16 @@ async function loadApiPosts(force) {
 
     const res = await apiFeed(1, 50);
     const posts = (res.items || []).map(mapApiPost);
-    // Резолвим голые object_name → полные URL (параллельно для всех постов)
     await resolvePostPhotos(posts);
-    S._apiPosts = posts;
+    // Мёрджим локально сохранённые посты (created offline или при ошибке API)
+    const localPosts = getUserPostsLocal();
+    const apiIds = new Set(posts.map(p => String(p.id)));
+    const uniqueLocal = localPosts.filter(p => !apiIds.has(String(p.id)));
+    S._apiPosts = [...uniqueLocal, ...posts];
     S._apiPostsLoaded = true;
   } catch (e) {
-    // Бэкенд недоступен — работаем на статических данных
-    S._apiPosts = [];
+    // Даже при ошибке сети — показываем локально сохранённые посты
+    S._apiPosts = getUserPostsLocal();
     S._apiPostsLoaded = true;
   }
 }

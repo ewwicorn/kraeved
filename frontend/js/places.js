@@ -1,10 +1,8 @@
 /* ════ PLACES ════ */
 
 function renderPlaces() {
-  const saved = POSTS.filter(p => S.wishlist.includes(p.id));
-  // + API-посты
-  const savedApi = S._apiPosts.filter(p => S.wishlist.includes(p.id));
-  const all = [...savedApi, ...saved];
+  // Только API-посты в избранном (заглушек больше нет)
+  const all = S._apiPosts.filter(p => S.wishlist.includes(p.id));
 
   document.getElementById('places-cnt').textContent = all.length === 0
     ? 'Нет сохранённых мест'
@@ -29,7 +27,7 @@ function renderPlaces() {
         <div class="pr-tp">${p.type}</div>
         <div class="pr-tgs">${p.tags.slice(0,3).map(t=>`<span class="pill dk">${t}</span>`).join('')}</div>
         <div class="pr-acts">
-          <button class="pr-rm" onclick="event.stopPropagation();togSave(${JSON.stringify(p.id)});renderPlaces()">Убрать</button>
+          <button class="pr-rm" onclick="event.stopPropagation();togSave('${p.id}');renderPlaces()">Убрать</button>
           <button class="bp" style="font-size:.74rem;padding:4px 11px" onclick="event.stopPropagation();go('tour-new')">В маршрут</button>
         </div>
       </div>

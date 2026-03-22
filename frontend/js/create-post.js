@@ -1,9 +1,37 @@
 /* ════ CREATE POST MODAL ════ */
 
-let _postImgFile    = null; // File object для загрузки на сервер
-let _postImgDataUrl = null; // preview DataURL
+let _postImgFile    = null;
+let _postImgDataUrl = null;
 let _postMap        = null;
 let _postMarker     = null;
+
+/* ── Теги из API ── */
+let _createTags = [];
+
+async function loadCreateTags() {
+  if (_createTags.length) return;
+  try {
+    const res = await apiLocationTags();
+    if (Array.isArray(res)) _createTags = res;
+  } catch (e) {
+    console.warn('Could not load tags for create form:', e.message);
+  }
+}
+
+function renderCreateTags() {
+  const wrap = document.getElementById('create-tags');
+  if (!wrap) return;
+  if (!_createTags.length) return; // оставить статические как фоллбэк
+
+  // Сохраняем ранее выбранные теги
+  const selected = new Set(
+    [...wrap.querySelectorAll('.create-tag.on')].map(el => el.dataset.tag)
+  );
+
+  wrap.innerHTML = _createTags.map(t =>
+    `<span class="create-tag ${selected.has(t.label_ru) ? 'on' : ''}" data-tag="${t.label_ru}" onclick="toggleCreateTag(this)">${t.label_ru}</span>`
+  ).join('');
+}
 
 function openCreatePost() {
   if (!S.loggedIn) { go('auth'); return; }
@@ -29,6 +57,7 @@ function openCreatePost() {
   document.getElementById('post-submit-btn').disabled    = false;
   document.getElementById('post-submit-btn').textContent = 'Опубликовать';
 
+  // Сбрасываем теги
   document.querySelectorAll('.create-tag').forEach(t => t.classList.remove('on'));
 
   const area = document.getElementById('img-upload-area');
@@ -40,8 +69,9 @@ function openCreatePost() {
   document.body.style.overflow = 'hidden';
   setTimeout(initPostMiniMap, 100);
 
-  // Преподгружаем локации из API чтобы поиск работал без задержки
+  // Загружаем теги и локации из API
   if (typeof loadApiLocations === 'function') loadApiLocations();
+  loadCreateTags().then(renderCreateTags);
 }
 
 function closeCreatePost() {
@@ -67,7 +97,6 @@ function onPostFileChange(input) {
 
 function toggleCreateTag(el) { el.classList.toggle('on'); }
 
-// Проверяет, является ли строка валидным UUID v4
 function isValidUUID(str) {
   if (!str) return false;
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
@@ -86,29 +115,21 @@ async function submitPost() {
   const btn = document.getElementById('post-submit-btn');
   btn.disabled = true; btn.textContent = 'Публикуется...';
 
-  const locId    = document.getElementById('post-loc-id').value || null;
-  // FIX: передаём location_id только если это настоящий UUID
+  const locId     = document.getElementById('post-loc-id').value || null;
   const validLocId = isValidUUID(locId) ? locId : null;
-  const knownLoc = locId ? LOCATIONS.find(l => l.id === locId) : null;
+  const knownLoc  = locId ? LOCATIONS.find(l => l.id === locId) : null;
 
-  let photoUrl = _postImgDataUrl; // fallback: base64
+  let photoUrl = _postImgDataUrl;
 
-  // Попытка загрузить файл через API
   if (_postImgFile && localStorage.getItem('kv_token')) {
     try {
       const uploadRes = await apiUploadFile(_postImgFile);
-
       if (uploadRes && uploadRes.url && isAbsoluteUrl(uploadRes.url)) {
         photoUrl = uploadRes.url;
-
       } else if (uploadRes && uploadRes.object_name) {
         try {
           const urlRes = await apiFileUrl(encodeURIComponent(uploadRes.object_name));
-          if (urlRes && urlRes.url) {
-            photoUrl = urlRes.url;
-          } else {
-            console.warn('Could not resolve file URL, keeping base64');
-          }
+          if (urlRes && urlRes.url) photoUrl = urlRes.url;
         } catch (urlErr) {
           console.warn('apiFileUrl failed, keeping base64:', urlErr.message);
         }
@@ -118,7 +139,6 @@ async function submitPost() {
     }
   }
 
-  // Попытка создать пост через API
   let savedAsApiPost = false;
   if (localStorage.getItem('kv_token')) {
     try {
@@ -126,15 +146,11 @@ async function submitPost() {
         title:       knownLoc ? knownLoc.name : title,
         content:     desc || (knownLoc ? knownLoc.desc : title),
         photos:      photoUrl ? [photoUrl] : [],
-        tags:        tags.length ? tags : (knownLoc ? knownLoc.tags : ['Природа']),
-        location_id: validLocId, // FIX: только UUID или null
+        tags:        tags.length ? tags : (knownLoc ? knownLoc.tags : []),
+        location_id: validLocId,
         lat,
         lng:         lon,
       };
-      console.log('Sending post data:', JSON.stringify({
-        ...postData,
-        photos: postData.photos.map(p => p.substring(0, 50)),
-      }));
       const created = await apiCreatePost(postData);
       const mapped  = mapApiPost(created);
       await resolvePostPhotos([mapped]);
@@ -145,14 +161,13 @@ async function submitPost() {
     }
   }
 
-  // Fallback: сохраняем в localStorage
   if (!savedAsApiPost) {
     const up = getUserPostsLocal();
     const newPost = {
       id:         Date.now(),
       title:      knownLoc ? knownLoc.name : title,
-      cat:        catFromTags(tags.length ? tags : (knownLoc ? knownLoc.tags : ['Природа'])),
-      tags:       tags.length ? tags : (knownLoc ? knownLoc.tags : ['Природа']),
+      cat:        catFromTags(tags.length ? tags : (knownLoc ? knownLoc.tags : [])),
+      tags:       tags.length ? tags : (knownLoc ? knownLoc.tags : []),
       type:       knownLoc ? knownLoc.typeLabel : 'Пост пользователя',
       author:     S.user.name,
       biz:        false,
@@ -182,11 +197,9 @@ async function submitPost() {
   }, 800);
 }
 
-/* Локальный fallback-storage (если API недоступен) */
 function getUserPostsLocal() { try { return JSON.parse(localStorage.getItem('kv_posts') || '[]'); } catch { return []; } }
 function saveUserPostsLocal(p) { try { localStorage.setItem('kv_posts', JSON.stringify(p)); } catch {} }
 
-/* Mini-map inside create modal */
 function initPostMiniMap() {
   if (!window.ymaps) { loadYmaps(initPostMiniMap); return; }
   const container = document.getElementById('post-minimap'); if (!container) return;

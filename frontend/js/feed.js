@@ -1,23 +1,52 @@
 /* ════ FEED ════ */
 
-function renderFilters() {
-  const cats = [
-    {k:'all',l:'Все'},{k:'gastro',l:'Гастро'},{k:'wine',l:'Вино'},
-    {k:'nature',l:'Природа'},{k:'active',l:'Активный'},
-    {k:'culture',l:'Культурный'},{k:'wellness',l:'Релакс'},
-  ];
-  document.getElementById('ffilters').innerHTML = cats.map(c =>
-    `<span class="pf ${S.feedCat === c.k ? 'on' : ''}" onclick="setCat('${c.k}')">${c.l}</span>`
-  ).join('');
+// Кэш тегов из API
+let _feedTags = []; // [{slug, label_ru, group}, ...]
+
+async function loadFeedTags() {
+  if (_feedTags.length) return;
+  try {
+    const res = await apiLocationTags();
+    if (Array.isArray(res)) _feedTags = res;
+  } catch (e) {
+    console.warn('Could not load tags:', e.message);
+  }
 }
 
-function setCat(c) { S.feedCat = c; S.feedLoaded = 15; renderFilters(); renderMasonry(); }
+function renderFilters() {
+  const el = document.getElementById('ffilters');
+  if (!el) return;
+
+  // Всегда первым — «Все»
+  const allChip = `<span class="pf ${S.feedCat === 'all' ? 'on' : ''}" onclick="setCat('all')">Все</span>`;
+
+  let chips;
+  if (_feedTags.length) {
+    chips = _feedTags.map(t =>
+      `<span class="pf ${S.feedCat === t.label_ru ? 'on' : ''}" onclick="setCat('${t.label_ru}')">${t.label_ru}</span>`
+    ).join('');
+  } else {
+    // Фоллбэк пока теги не загружены
+    chips = '';
+  }
+
+  el.innerHTML = allChip + chips;
+}
+
+function setCat(c) {
+  S.feedCat = c;
+  S.feedLoaded = 15;
+  renderFilters();
+  renderMasonry();
+}
 
 function renderMasonry() {
-  const allPosts  = getAllPosts();
-  const filtered  = S.feedCat === 'all' ? allPosts : allPosts.filter(p => p.cat === S.feedCat);
-  const vis       = filtered.slice(0, S.feedLoaded);
-  const hm        = { tall: 'aspect-ratio:3/4', medium: 'aspect-ratio:4/5', short: 'aspect-ratio:1/1' };
+  const allPosts = getAllPosts();
+  const filtered = S.feedCat === 'all'
+    ? allPosts
+    : allPosts.filter(p => Array.isArray(p.tags) && p.tags.includes(S.feedCat));
+  const vis = filtered.slice(0, S.feedLoaded);
+  const hm  = { tall: 'aspect-ratio:3/4', medium: 'aspect-ratio:4/5', short: 'aspect-ratio:1/1' };
 
   let html = '';
 
@@ -32,8 +61,8 @@ function renderMasonry() {
   }
 
   html += vis.map(p => {
-    const isMyPost  = p.isUserPost && S.user && p.userId === (S.user.id || S.user.email);
-    const avSrc     = isMyPost && S.user?.avatar
+    const isMyPost    = p.isUserPost && S.user && p.userId === (S.user.id || S.user.email);
+    const avSrc       = isMyPost && S.user?.avatar
       ? S.user.avatar
       : 'https://i.pravatar.cc/40?u=' + p.id;
     const authorLabel = isMyPost ? (S.user?.name || p.author) : p.author;
@@ -72,7 +101,6 @@ function togSave(id) {
     S.wishlist.push(id);
     if (!S._savedOnce[id]) { S.interactions++; S._savedOnce[id] = true; }
     saveS(); renderMasonry(); toast('Место сохранено');
-    // Лайк в API если пост оттуда
     const p = getAllPosts().find(x => x.id === id);
     if (p && p.apiId) apiLikePost(p.apiId).catch(() => {});
   } else {
@@ -83,9 +111,8 @@ function togSave(id) {
 
 function loadMore() { S.feedLoaded += 8; renderMasonry(); }
 
-/* Загрузить посты и перерисовать ленту */
 async function initFeed() {
-  await loadApiPosts();
+  await Promise.all([loadApiPosts(), loadFeedTags()]);
   renderFilters();
   renderMasonry();
 }
