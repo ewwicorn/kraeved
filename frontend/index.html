@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Краевед</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,400;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ═══ NAV ═══ -->
+<nav class="nb" id="nb">
+  <span class="logo" onclick="go('landing')">Краевед<em>.</em></span>
+  <div class="nlinks">
+    <span class="nlink" onclick="go('feed')">Лента</span>
+    <div class="nav-user" id="nav-user" style="display:none">
+      <img class="nav-av" id="nav-av" src="" alt="" onclick="go('profile')">
+      <span class="nav-nm" id="nav-nm" onclick="go('profile')"></span>
+      <button class="btn-nav" id="nav-post-btn" onclick="openCreatePost()" style="display:none">+ Пост</button>
+    </div>
+    <button class="btn-nav" id="nav-btn" onclick="go('auth')">Войти</button>
+  </div>
+</nav>
+
+<div class="toasts" id="toasts"></div>
+
+<div class="loader" id="loader">
+  <div style="text-align:center">
+    <div style="font-family:'Fraunces',serif;font-style:italic;font-size:2.3rem;color:var(--terra);margin-bottom:4px">Краевед</div>
+    <div style="font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.2);margin-bottom:40px">Строим маршрут</div>
+  </div>
+  <div class="lring"></div>
+  <div class="ltxt" id="ltxt">Анализируем предпочтения...</div>
+  <div class="ldots"><span></span><span></span><span></span></div>
+</div>
+
+<!-- LOCATION MODAL -->
+<div class="modal" id="loc-modal">
+  <div class="mbg" onclick="closeLocModal()"></div>
+  <div class="loc-modal-inner">
+    <div class="loc-hero">
+      <img id="lm-img" src="" alt="">
+      <div class="loc-hero-ov">
+        <div class="loc-hero-title" id="lm-title"></div>
+        <div class="loc-hero-type" id="lm-type"></div>
+      </div>
+      <button class="loc-x" onclick="closeLocModal()">&#10005;</button>
+    </div>
+    <div class="loc-body">
+      <div class="loc-tags" id="lm-tags"></div>
+      <div class="loc-desc" id="lm-desc"></div>
+      <div class="loc-posts-hd">Публикации с этой локации</div>
+      <div id="lm-posts"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CREATE POST MODAL -->
+<div class="modal" id="create-modal">
+  <div class="mbg" onclick="closeCreatePost()"></div>
+  <div class="create-modal-inner">
+    <button style="position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;background:rgba(28,20,16,.07);border:none;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center" onclick="closeCreatePost()">&#10005;</button>
+    <h3>Новая публикация</h3>
+    <div class="post-success" id="post-success">Пост опубликован — он появился в ленте и на карте.</div>
+
+    <div style="margin-bottom:20px">
+      <span class="create-field-label">Фото</span>
+      <div class="img-upload-area" id="img-upload-area" onclick="document.getElementById('post-file').click()">
+        <div class="upload-hint">
+          <strong>Выберите фото</strong>
+          Нажмите, чтобы загрузить
+        </div>
+        <div class="img-upload-overlay"><span>Изменить фото</span></div>
+      </div>
+      <input type="file" id="post-file" accept="image/*" style="display:none" onchange="onPostFileChange(this)">
+    </div>
+
+    <div style="margin-bottom:16px">
+      <span class="create-field-label">Название места</span>
+      <input class="fi" type="text" id="post-title" placeholder="Например: Абрау-Дюрсо, закат">
+    </div>
+
+    <div style="margin-bottom:16px">
+      <span class="create-field-label">Описание (необязательно)</span>
+      <textarea class="fi" id="post-desc" placeholder="Расскажи об этом месте..."></textarea>
+    </div>
+
+    <div style="margin-bottom:16px">
+      <span class="create-field-label">Локация</span>
+      <div style="font-size:.76rem;color:var(--muted);margin-bottom:8px">Выбери из известных мест или поставь точку на карте</div>
+
+      <div class="loc-search-wrap" style="margin-bottom:10px">
+        <input class="fi" type="text" id="loc-search-input" placeholder="Поиск по названию локации..."
+          oninput="onLocSearch(this.value)" onfocus="onLocSearch(this.value)" autocomplete="off">
+        <div class="loc-dropdown" id="loc-dropdown"></div>
+      </div>
+
+      <div class="loc-selected-card" id="loc-selected-card">
+        <img id="lsc-img" src="" alt="">
+        <div class="loc-selected-info">
+          <div class="loc-selected-name" id="lsc-name"></div>
+          <div class="loc-selected-type" id="lsc-type"></div>
+        </div>
+        <button class="loc-clear-btn" onclick="clearLocSelection()">Сбросить</button>
+      </div>
+
+      <div id="loc-map-divider" style="display:flex;align-items:center;gap:10px;margin:10px 0">
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+        <span style="font-size:.74rem;color:var(--light);font-weight:500">или укажи место на карте</span>
+        <div style="flex:1;height:1px;background:var(--border)"></div>
+      </div>
+
+      <div id="post-minimap" style="width:100%;height:200px;border-radius:var(--rs);overflow:hidden;border:1.5px solid var(--border);background:#E8E0D4;position:relative">
+        <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:.84rem;flex-direction:column;gap:6px" id="minimap-hint">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Карта загружается...
+        </div>
+      </div>
+      <div id="post-coord-display" style="display:none;margin-top:8px;font-size:.78rem;color:var(--terra);font-weight:600;align-items:center;gap:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        <span id="post-coord-text">Точка не выбрана</span>
+        <button onclick="clearPostCoord()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:.76rem;text-decoration:underline">Сбросить</button>
+      </div>
+      <input type="hidden" id="post-lat">
+      <input type="hidden" id="post-lon">
+      <input type="hidden" id="post-loc-id">
+    </div>
+
+    <div style="margin-bottom:24px">
+      <span class="create-field-label">Теги</span>
+      <div class="create-tags-wrap" id="create-tags">
+        <span class="create-tag" data-tag="Вино"    onclick="toggleCreateTag(this)">Вино</span>
+        <span class="create-tag" data-tag="Природа" onclick="toggleCreateTag(this)">Природа</span>
+        <span class="create-tag" data-tag="Гастро"  onclick="toggleCreateTag(this)">Гастро</span>
+        <span class="create-tag" data-tag="Море"    onclick="toggleCreateTag(this)">Море</span>
+        <span class="create-tag" data-tag="Горы"    onclick="toggleCreateTag(this)">Горы</span>
+        <span class="create-tag" data-tag="Трекинг" onclick="toggleCreateTag(this)">Трекинг</span>
+        <span class="create-tag" data-tag="Релакс"  onclick="toggleCreateTag(this)">Релакс</span>
+        <span class="create-tag" data-tag="Культура" onclick="toggleCreateTag(this)">Культура</span>
+        <span class="create-tag" data-tag="Ферма"   onclick="toggleCreateTag(this)">Ферма</span>
+        <span class="create-tag" data-tag="Закат"   onclick="toggleCreateTag(this)">Закат</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px">
+      <button class="bp bfull" onclick="submitPost()" id="post-submit-btn">Опубликовать</button>
+    </div>
+  </div>
+</div>
+
+<!-- POST MODAL -->
+<button class="pm-close-btn" id="pm-close-btn" onclick="closePost()">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+</button>
+
+<div class="pm-overlay" id="post-modal">
+  <div class="pm-photo-side">
+    <div class="pm-photo-wrap">
+      <img id="pm-img" src="" alt="">
+      <div class="pm-photo-grad"></div>
+    </div>
+    <button class="pm-arr-new l" onclick="pmSlide(-1)">&#8249;</button>
+    <button class="pm-arr-new r" onclick="pmSlide(1)">&#8250;</button>
+    <div class="pm-dots-new" id="pm-dots"></div>
+    <div class="pm-photo-meta">
+      <div class="pm-auth-row">
+        <img id="pm-av" class="pm-av-new" src="" alt="">
+        <div>
+          <div class="pm-an" id="pm-an"></div>
+          <div class="pm-at" id="pm-at"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="pm-content-side">
+    <div class="pm-content-scroll">
+      <div class="pm-eyebrow" id="pm-tp"></div>
+      <h1 class="pm-heading" id="pm-ttl"></h1>
+      <div class="pm-tags-row" id="pm-tags"></div>
+      <p class="pm-body" id="pm-desc"></p>
+      <div class="pm-cta-row">
+        <button class="pm-cta-save" id="pm-btn-save" onclick="saveFromPost()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          Сохранить
+        </button>
+        <button class="pm-cta-tour" onclick="closePost();go('tour-new')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+          В маршрут
+        </button>
+        <button class="pm-cta-delete" id="pm-btn-delete" onclick="deletePost()" style="display:none">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>
+          Удалить
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VIDEO MODAL -->
+<div class="modal" id="vid-modal">
+  <div class="mbg" onclick="closeVid()"></div>
+  <div class="vid-in">
+    <button class="vx" onclick="closeVid()">&#10005;</button>
+    <div class="vsli" id="vsli"></div>
+    <div class="vov">
+      <div class="vloc" id="vloc"></div>
+      <div class="vtags" id="vtags"></div>
+      <div class="vacts">
+        <button class="vadd" onclick="toast('Добавлено в тур')">+ В тур</button>
+        <a class="vbook" id="vbook" href="#" target="_blank">Забронировать</a>
+      </div>
+    </div>
+    <div class="vdots" id="vdots"></div>
+    <div class="vprog"><div class="vpbar" id="vpbar" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- ═══ LANDING ═══ -->
+<div class="page on" id="pg-landing">
+  <section class="hero">
+    <div class="hbg"></div><div class="hov"></div>
+    <div class="hc">
+      <div class="hbadge">Краснодарский край</div>
+      <h1>Открывай <em><br>Кубань</em><br>по-новому</h1>
+      <p class="hsub">Персональный маршрут за 2 минуты.<br>ИИ подбирает под тебя — никаких шаблонов.</p>
+      <div class="hcta"><button class="bp" style="font-size:1rem;padding:14px 42px;box-shadow:0 8px 30px rgba(196,96,59,.38)" onclick="go('ob')">Начать путешествие</button></div>
+    </div>
+    <div class="hscroll">Листай <i></i></div>
+  </section>
+  <section class="how-s">
+    <div class="how-hd"><div class="ey">Как работает</div><h2>Три шага до идеального маршрута</h2><p>Никаких анкет — просто листай, и маршрут появится сам.</p></div>
+    <div class="how-grid">
+      <div class="how-card"><div class="how-n">1</div><h3>Выбери вайб</h3><p>Пара быстрых выборов — система поймёт, что тебе по душе.</p></div>
+      <div class="how-card"><div class="how-n">2</div><h3>Листай ленту</h3><p>Сохраняй понравившиеся места. Профиль уточняется с каждым действием.</p></div>
+      <div class="how-card"><div class="how-n">3</div><h3>Получи маршрут</h3><p>ИИ соберёт тур с картой, жильём и трансфером за 15 секунд.</p></div>
+    </div>
+  </section>
+  <section class="prev-s">
+    <div class="ey">Что внутри</div><h2>Места, которые вдохновляют</h2><p class="sub">Посмотри на подборку прямо сейчас</p>
+    <div class="prev-grid" id="prev-grid"></div>
+    <div style="text-align:center"><button class="bp" onclick="go('ob')">Смотреть все места</button></div>
+  </section>
+  <section class="cta-s">
+    <h2>Твой следующий маршрут<br>ждёт тебя</h2>
+    <p>Тысячи путешественников уже открыли Краснодарский край по-новому</p>
+    <button class="bp" onclick="go('ob')">Создать маршрут бесплатно</button>
+  </section>
+  <footer class="foot">
+    <div class="flogo">Краевед<em>.</em></div>
+    <div class="ftxt">© 2026 · Персонализированные туры по Краснодарскому краю</div>
+    <div class="ftxt">MVP v3.0</div>
+  </footer>
+</div>
+
+<!-- ═══ AUTH ═══ -->
+<div class="page" id="pg-auth">
+  <div class="auth-vis">
+    <div class="auth-vov">
+      <h2>Твой личный<br>путеводитель</h2>
+      <p style="margin-top:9px">Создай профиль и получи<br>персональный маршрут</p>
+      <div style="margin-top:22px;display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
+        <span class="pill" style="background:rgba(255,255,255,.14);color:rgba(255,255,255,.88)">Вино</span>
+        <span class="pill" style="background:rgba(255,255,255,.14);color:rgba(255,255,255,.88)">Природа</span>
+        <span class="pill" style="background:rgba(255,255,255,.14);color:rgba(255,255,255,.88)">Горы</span>
+        <span class="pill" style="background:rgba(255,255,255,.14);color:rgba(255,255,255,.88)">Гастро</span>
+      </div>
+    </div>
+  </div>
+  <div class="auth-side">
+    <div class="auth-wrap">
+      <div class="auth-tabs">
+        <div class="auth-tab on" onclick="authTab('t',this)">Путешественник</div>
+        <div class="auth-tab" onclick="authTab('b',this)">Бизнес</div>
+      </div>
+      <h2 id="auth-title">Добро пожаловать</h2>
+      <p class="asub" id="auth-sub">Войдите в аккаунт</p>
+      <div class="aerr" id="aerr"></div>
+      <div class="aok"  id="aok"></div>
+      <button class="btn-vk" onclick="doVk()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M15.684 0H8.316C1.592 0 0 1.592 0 8.316v7.368C0 22.408 1.592 24 8.316 24h7.368C22.408 24 24 22.408 24 15.684V8.316C24 1.592 22.408 0 15.684 0zm3.692 17.123h-1.744c-.66 0-.864-.525-2.05-1.727-1.033-1-1.49-1.135-1.744-1.135-.356 0-.458.102-.458.593v1.575c0 .424-.135.678-1.253.678-1.846 0-3.896-1.118-5.335-3.202C5.122 11.251 4.5 9.35 4.5 8.91c0-.254.102-.491.593-.491h1.744c.44 0 .61.203.779.678.864 2.49 2.303 4.675 2.897 4.675.22 0 .322-.102.322-.66V10.27c-.068-1.186-.695-1.287-.695-1.71 0-.203.17-.407.44-.407h2.744c.373 0 .508.203.508.643v3.473c0 .373.17.508.271.508.22 0 .407-.135.813-.542 1.253-1.405 2.151-3.574 2.151-3.574.119-.254.322-.491.762-.491h1.744c.525 0 .643.27.525.643-.22 1.016-2.354 4.030-2.354 4.030-.186.305-.254.44 0 .78.186.253.796.779 1.203 1.253.745.864 1.32 1.591 1.473 2.09.152.491-.102.745-.593.745z"/></svg>
+        Войти через VK
+      </button>
+      <div class="auth-or">или</div>
+      <div class="fg" id="fg-nm" style="display:none"><label>Имя</label><input class="fi" type="text" id="a-nm" placeholder="Алексей"></div>
+      <div class="fg"><label>Email</label><input class="fi" type="email" id="a-em" placeholder="your@email.com"></div>
+      <div class="fg"><label>Пароль</label><input class="fi" type="password" id="a-pw" placeholder="min. 6 символов" onkeydown="if(event.key==='Enter')doAuth()"></div>
+      <div class="fg" id="fg-cf" style="display:none"><label>Повтор пароля</label><input class="fi" type="password" id="a-cf" placeholder="Повторите пароль"></div>
+      <button class="bp btn-auth" id="abtn" onclick="doAuth()">
+        <div class="spi"></div><span class="albl" id="albl">Войти</span>
+      </button>
+      <div class="auth-sw" id="auth-sw">Нет аккаунта? <a onclick="toggleAuth()">Зарегистрироваться</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ONBOARDING ═══ -->
+<div class="page" id="pg-ob">
+  <div class="ob-hd">
+    <div class="ob-prog"><div class="ob-bar" id="ob-bar" style="width:0%"></div></div>
+    <div class="ob-lbl" id="ob-lbl">Шаг 1 из 6</div>
+    <div class="ob-q"   id="ob-q"></div>
+    <div class="ob-hint">Выбери один вариант — тот, что откликается сильнее</div>
+  </div>
+  <div id="ob-body"></div>
+</div>
+
+<!-- ═══ FEED ═══ -->
+<div class="page" id="pg-feed">
+  <div class="ffilters" id="ffilters"></div>
+  <div class="masonry" id="masonry"></div>
+  <div class="lmore"><button class="lmbtn" onclick="loadMore()">Загрузить ещё</button></div>
+  <button class="fab" onclick="go('tour-new')" title="Создать маршрут">&#10022;</button>
+  <nav class="bnav">
+    <div class="bni on" onclick="go('feed')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Лента</div>
+    <div class="bni" onclick="go('map')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Карта</div>
+    <div class="bni" onclick="go('places')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Места</div>
+    <div class="bni" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Профиль</div>
+  </nav>
+</div>
+
+<!-- ═══ MAP ═══ -->
+<div class="page" id="pg-map">
+  <div class="map-wrap">
+    <div id="map-full"></div>
+    <div class="map-leg">
+      <h3>Карта мест</h3>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:6px;line-height:1.8">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:14px;height:14px;border-radius:50%;background:#8B3A7A;flex-shrink:0"></div>Винодельня</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:14px;height:14px;border-radius:50%;background:#2E7D9E;flex-shrink:0"></div>Водопад / маршрут</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:14px;height:14px;border-radius:50%;background:#4A6741;flex-shrink:0"></div>Горы / плато</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:3px"><div style="width:14px;height:14px;border-radius:50%;background:#8B6914;flex-shrink:0"></div>Ферма</div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px"><div style="width:14px;height:14px;border-radius:50%;background:#C4603B;border:2px solid #C4603B;flex-shrink:0"></div>Пост пользователя</div>
+        <div style="font-size:.7rem;color:var(--light)">Нажми на метку, чтобы открыть</div>
+      </div>
+    </div>
+  </div>
+  <nav class="bnav">
+    <div class="bni" onclick="go('feed')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Лента</div>
+    <div class="bni on" onclick="go('map')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Карта</div>
+    <div class="bni" onclick="go('places')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Места</div>
+    <div class="bni" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Профиль</div>
+  </nav>
+</div>
+
+<!-- ═══ PLACES ═══ -->
+<div class="page" id="pg-places">
+  <div class="pw">
+    <div class="pw-hd"><h2>Мои места</h2><p id="places-cnt"></p></div>
+    <div id="places-list"></div>
+  </div>
+  <nav class="bnav">
+    <div class="bni" onclick="go('feed')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Лента</div>
+    <div class="bni" onclick="go('map')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Карта</div>
+    <div class="bni on" onclick="go('places')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Места</div>
+    <div class="bni" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Профиль</div>
+  </nav>
+</div>
+
+<!-- ═══ PROFILE ═══ -->
+<div class="page" id="pg-profile">
+  <div class="prw" id="prw"></div>
+  <nav class="bnav">
+    <div class="bni" onclick="go('feed')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Лента</div>
+    <div class="bni" onclick="go('map')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Карта</div>
+    <div class="bni" onclick="go('places')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>Места</div>
+    <div class="bni on" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Профиль</div>
+  </nav>
+</div>
+
+<!-- ═══ TOUR FORM ═══ -->
+<div class="page" id="pg-tour-new">
+  <div class="tf-w">
+    <button onclick="go('feed')" style="display:inline-flex;align-items:center;gap:5px;background:none;border:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.84rem;cursor:pointer;margin-bottom:16px;margin-top:14px">&#8592; Назад</button>
+    <div class="tf-hd"><div class="ey">Генератор маршрута</div><h2>Куда и когда?</h2><p>Укажи параметры — ИИ соберёт тур специально для тебя</p></div>
+    <div class="fs"><div class="fsl">Даты поездки</div>
+      <div class="date-row">
+        <div><span class="dsub">С</span><input type="date" id="dt-from" value="2026-05-10"></div>
+        <div><span class="dsub">По</span><input type="date" id="dt-to" value="2026-05-13"></div>
+      </div>
+    </div>
+    <div class="fs"><div class="fsl">Состав группы</div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap" id="grp-pills">
+        <span class="pt on" data-g="solo"    onclick="selGrp(this)">Соло</span>
+        <span class="pt"    data-g="couple"  onclick="selGrp(this)">Пара</span>
+        <span class="pt"    data-g="family"  onclick="selGrp(this)">Семья с детьми</span>
+        <span class="pt"    data-g="friends" onclick="selGrp(this)">Друзья</span>
+      </div>
+      <div id="child-age" style="display:none;margin-top:8px"><input class="fi" placeholder="Возраст детей, напр: 5, 9" style="max-width:250px"></div>
+    </div>
+    <div class="fs"><div class="fsl">Бюджет на человека</div>
+      <div class="btrack">
+        <div class="bfill" id="bfill" style="width:35%"></div>
+        <input type="range" class="bsli" id="bsli" min="3000" max="50000" value="20000" step="500" oninput="onBudget(this)">
+      </div>
+      <div class="blbls"><span>3 000 ₽</span><span>50 000 ₽</span></div>
+      <div class="bcur" id="bcur">до 20 000 ₽</div>
+    </div>
+    <div class="fs"><div class="fsl">Типы активностей</div>
+      <div class="cwrap" id="act-chips">
+        <span class="pc on" data-a="gastro"   onclick="togChip(this)">Гастро</span>
+        <span class="pc"    data-a="wine"      onclick="togChip(this)">Вино</span>
+        <span class="pc on" data-a="eco"       onclick="togChip(this)">Эко</span>
+        <span class="pc"    data-a="active"    onclick="togChip(this)">Активный</span>
+        <span class="pc"    data-a="culture"   onclick="togChip(this)">Культурный</span>
+        <span class="pc"    data-a="wellness"  onclick="togChip(this)">Оздоровительный</span>
+      </div>
+    </div>
+    <div class="fs"><div class="fsl">Транспорт</div>
+      <div class="tcc">
+        <div class="tcard on" id="tc-car" onclick="selTrans('car')">
+          <div class="tcard-ico">А</div><div class="tcard-lbl">На машине</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:3px">Маршрут по дорогам</div>
+        </div>
+        <div class="tcard" id="tc-pub" onclick="selTrans('public')">
+          <div class="tcard-ico">Т</div><div class="tcard-lbl">Без машины</div>
+          <div style="font-size:.72rem;color:var(--muted);margin-top:3px">Общественный транспорт</div>
+        </div>
+      </div>
+    </div>
+    <div class="fs"><div class="fsl">Мои сохранённые места</div>
+      <div class="sp-block">
+        <label><input type="checkbox" id="inc-saved" checked>Включить в маршрут</label>
+        <div class="sp-prev" id="sp-prev"></div>
+        <div id="sp-count" style="font-size:.76rem;color:var(--muted);margin-top:6px"></div>
+      </div>
+    </div>
+    <button class="gen-btn" id="gen-btn" onclick="generateTour()"><span id="gen-lbl">Создать маршрут</span></button>
+  </div>
+</div>
+
+<!-- ═══ TOUR RESULT ═══ -->
+<div class="page" id="pg-tour-result">
+  <div class="tsplit">
+    <div class="tlist" id="tlist"></div>
+    <div class="tmap"><div id="ymap"></div></div>
+  </div>
+  <div class="sbar">
+    <button class="bp" onclick="scrollHotels()">Забронировать жильё</button>
+    <button class="bs" onclick="openNav()">Маршрут в навигатор</button>
+    <button class="bs" onclick="shareTour()">Поделиться</button>
+  </div>
+</div>
+
+<!-- ═══ SCRIPTS ═══
+     Порядок важен: config → data → api → state → ui → модули → router → main
+═══════════════════ -->
+<script src="js/config.js"></script>
+<script src="js/data.js"></script>
+<script src="js/api.js"></script>
+<script src="js/state.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/onboarding.js"></script>
+<script src="js/feed.js"></script>
+<script src="js/post-modal.js"></script>
+<script src="js/video.js"></script>
+<script src="js/map.js"></script>
+<script src="js/tour.js"></script>
+<script src="js/places.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/create-post.js"></script>
+<script src="js/location-modal.js"></script>
+<script src="js/router.js"></script>
+<script src="js/main.js"></script>
+
+</body>
+</html>

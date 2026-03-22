@@ -63,12 +63,14 @@ class PostService:
         db.add(post)
         await db.flush()
         await db.refresh(post)
+        await db.commit()
         return post
 
     async def like(self, db: AsyncSession, post: Post) -> Post:
         post.likes_count += 1
         await db.flush()
         await db.refresh(post)
+        await db.commit()
         return post
 
     async def delete(self, db: AsyncSession, post: Post) -> None:
