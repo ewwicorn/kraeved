@@ -21,6 +21,7 @@ class MinioService:
             access_key=settings.MINIO_ACCESS_KEY,
             secret_key=settings.MINIO_SECRET_KEY,
             secure=settings.MINIO_SECURE,
+            public=settings.MINIO_PUBLIC_URL
         )
 
     def _ensure_bucket(self) -> None:

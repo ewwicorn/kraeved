@@ -36,7 +36,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
                 "style-src 'self' 'unsafe-inline'; "
                 "img-src 'self' data:; "
                 "font-src 'self'; "
-                "connect-src 'self'"
+                "connect-src 'self' http://localhost:* http://127.0.0.1:*"
             )
         
         if request.method in ["POST", "PUT", "DELETE", "PATCH"]:

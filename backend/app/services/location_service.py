@@ -99,6 +99,7 @@ class LocationService:
         db.add(location)
         await db.flush()
         await db.refresh(location)
+        await db.commit()
         return location
 
     async def update(
@@ -124,6 +125,7 @@ class LocationService:
 
         await db.flush()
         await db.refresh(location)
+        await db.commit()
         return location
 
     async def set_active(
@@ -132,11 +134,12 @@ class LocationService:
         location.is_active = is_active
         await db.flush()
         await db.refresh(location)
+        await db.commit()
         return location
 
     async def delete(self, db: AsyncSession, location: Location) -> None:
         await db.delete(location)
-        await db.commit() #mb remove later
+        await db.commit()
 
     async def get_all_tags(self, db: AsyncSession) -> list[Tag]:
         result = await db.execute(
