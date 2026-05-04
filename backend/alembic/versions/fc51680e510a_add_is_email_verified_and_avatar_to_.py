@@ -31,7 +31,7 @@ def upgrade() -> None:
         "users",
         sa.Column("avatar_object_name", sa.String(500), nullable=True),
     )
-    # BUG FIX: keep server_default=func.now() so inserts without explicit
+    # Bug fix: keep server_default=func.now() so inserts without explicit
     # created_at don't fail. The original migration added the column then
     # immediately dropped the server_default, breaking all subsequent inserts.
     op.add_column(

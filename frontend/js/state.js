@@ -25,6 +25,7 @@ const S = {
   _apiPosts: [],
   _apiPostsLoaded: false,
   _apiLocMap: {},
+  _deletedPostIds: new Set(),
 };
 
 /* ── Персистентность ── */
@@ -60,9 +61,10 @@ function catFromTags(tags) {
   return 'nature';
 }
 
-/* Теперь возвращает только API-посты — заглушек больше нет */
+/* Возвращает все посты, исключая удалённые в текущей сессии */
 function getAllPosts() {
-  return [...S._apiPosts];
+  if (!S._deletedPostIds.size) return [...S._apiPosts];
+  return S._apiPosts.filter(p => !S._deletedPostIds.has(String(p.id)));
 }
 
 async function loadApiPosts(force) {

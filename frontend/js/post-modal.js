@@ -92,12 +92,17 @@ async function deletePost() {
     }
   }
 
+  // Запоминаем удалённый id — getAllPosts() будет его фильтровать
+  // даже если он вернётся из кэша или нового fetch'а
+  S._deletedPostIds.add(String(p.id));
+
   // Удаляем из локального хранилища
   const local = getUserPostsLocal().filter(x => String(x.id) !== String(p.id));
   saveUserPostsLocal(local);
 
-  // Удаляем из кэша
+  // Удаляем из кэша и помечаем, что нужен свежий fetch при следующем визите в ленту
   S._apiPosts = S._apiPosts.filter(x => String(x.id) !== String(p.id));
+  S._apiPostsLoaded = false;
 
   // Удаляем из вишлиста если там был
   S.wishlist = S.wishlist.filter(id => String(id) !== String(p.id));

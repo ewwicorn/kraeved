@@ -1,4 +1,4 @@
-# alembic/versions/a2b3c4d5e6f7_create_posts_table.py
+# Alembic revision for creating the posts table.
 
 """create posts table
 

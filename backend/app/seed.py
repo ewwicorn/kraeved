@@ -15,16 +15,16 @@ from app.models.location import Tag, Location
 from app.models.user import User
 from app.models.post import Post
 
-# ─── Теги ────────────────────────────────────────────────────────────────────
+# Seed tag data.
 
 TAGS = [
-    # Сезонность
+    # Season tags.
     {"slug": "season-spring",  "label_ru": "весна",        "group": "season"},
     {"slug": "season-summer",  "label_ru": "лето",          "group": "season"},
     {"slug": "season-autumn",  "label_ru": "осень",         "group": "season"},
     {"slug": "season-winter",  "label_ru": "зима",          "group": "season"},
     {"slug": "season-all",     "label_ru": "круглый год",   "group": "season"},
-    # Активность
+    # Activity tags.
     {"slug": "activity-wine",      "label_ru": "винный туризм",     "group": "activity"},
     {"slug": "activity-gastro",    "label_ru": "гастрономия",       "group": "activity"},
     {"slug": "activity-eco",       "label_ru": "эко-туризм",        "group": "activity"},
@@ -32,7 +32,7 @@ TAGS = [
     {"slug": "activity-trekking",  "label_ru": "трекинг",           "group": "activity"},
     {"slug": "activity-culture",   "label_ru": "культурный",        "group": "activity"},
     {"slug": "activity-wellness",  "label_ru": "оздоровительный",   "group": "activity"},
-    # Аудитория
+    # Audience tags.
     {"slug": "audience-family",  "label_ru": "семья с детьми",     "group": "audience"},
     {"slug": "audience-senior",  "label_ru": "пенсионный возраст", "group": "audience"},
     {"slug": "audience-remote",  "label_ru": "удалёнщик",          "group": "audience"},
@@ -40,7 +40,7 @@ TAGS = [
     {"slug": "audience-couple",  "label_ru": "пара",               "group": "audience"},
 ]
 
-# ─── Локации ──────────────────────────────────────────────────────────────────
+# Seed location data.
 
 LOCATIONS = [
     {
@@ -177,7 +177,7 @@ LOCATIONS = [
     },
 ]
 
-# ─── Пользователи ─────────────────────────────────────────────────────────────
+# Seed user data.
 
 USERS = [
     {
@@ -210,8 +210,8 @@ USERS = [
     },
 ]
 
-# ─── Посты ────────────────────────────────────────────────────────────────────
-# author_email и location_slug — для связи при создании
+# Seed post data.
+# Use author_email and location_slug to link seed posts.
 
 POSTS = [
     {
@@ -334,7 +334,7 @@ POSTS = [
         "lat": 45.2107, "lng": 36.7144,
         "likes_count": 51,
     },
-    # ── Новые посты: непопулярные локации ──────────────────────────────────
+    # Additional posts for less popular locations.
     {
         "title": "Водопады Руфабго — лучше чем ожидали",
         "content": "Ехали скептически — думали, просто ручейки. Оказалось совсем не так. Первый водопад «Девичья коса» уже поражает. Но дойдите до четвёртого — «Чаша любви» — там можно искупаться в природном бассейне. Тропа несложная, подходит для детей лет с шести. Вход платный, но символический. Из Майкопа — 30 минут на машине.",
@@ -446,7 +446,7 @@ POSTS = [
         "likes_count": 56,
     },
 
-    # Посты без привязки к локации — просто впечатления
+    # Posts without linked locations are general travel impressions.
     {
         "title": "Краснодарский край — открытие года",
         "content": "Объездили за две недели пять мест. Нигде не разочаровались. Цены разумные, люди приветливые, природа разнообразная — горы, степи, море рядом. Обязательно вернёмся.",
@@ -480,12 +480,12 @@ POSTS = [
 ]
 
 
-# ─── Функция seed ─────────────────────────────────────────────────────────────
+# Seed routine.
 
 async def seed():
     async with AsyncSessionLocal() as db:
 
-        # ── Теги: пропустить если уже есть ──────────────────────────────────
+        # Skip tags that already exist.
         existing_tags = (await db.execute(select(Tag))).scalars().all()
         tag_map: dict[str, Tag] = {t.slug: t for t in existing_tags}
 
@@ -499,7 +499,7 @@ async def seed():
 
         await db.flush()
 
-        # ── Локации: пропустить если уже есть ───────────────────────────────
+        # Skip locations that already exist.
         existing_slugs = {
             row[0] for row in (await db.execute(select(Location.slug))).all()
         }
@@ -513,16 +513,16 @@ async def seed():
                 location.tags = [tag_map[s] for s in tag_slugs]
                 db.add(location)
                 new_locs += 1
-            # загрузить в map независимо от того, новая или старая
-            loc_data["tag_slugs"] = tag_slugs  # вернём обратно чтобы не ломать данные
+            # Add each location to the lookup map, whether new or existing.
+            loc_data["tag_slugs"] = tag_slugs  # Restore source data.
 
         await db.flush()
 
-        # перезагружаем все локации чтобы получить их id
+        # Reload locations to fetch their database IDs.
         all_locs = (await db.execute(select(Location))).scalars().all()
         loc_map = {loc.slug: loc for loc in all_locs}
 
-        # ── Пользователи: пропустить если уже есть ──────────────────────────
+        # Skip users that already exist.
         existing_emails = {
             row[0] for row in (await db.execute(select(User.email))).all()
         }
@@ -544,11 +544,11 @@ async def seed():
 
         await db.flush()
 
-        # перезагружаем всех пользователей
+        # Reload all users.
         all_users = (await db.execute(select(User))).scalars().all()
         user_map = {u.email: u for u in all_users}
 
-        # ── Посты: пропустить если уже есть (по title + author) ─────────────
+        # Skip posts that already exist for the same title.
         existing_titles = {
             row[0] for row in (await db.execute(select(Post.title))).all()
         }

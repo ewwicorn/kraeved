@@ -1,9 +1,3 @@
-"""
-db/base.py — декларативная база и общий миксин.
-
-TimestampMixin добавляет created_at во все модели,
-чтобы не повторять одно и то же поле в каждом файле.
-"""
 import uuid
 
 from sqlalchemy import Column, DateTime

@@ -1,149 +1,168 @@
-# Краевед
+# Kraeved
 
-> Персональный навигатор по нестандартным локациям Краснодарского края
+> A local travel discovery and route-planning MVP for unusual places in Krasnodar Krai and nearby regions.
 
-Краевед — это социальный сервис для планирования авторских путешествий по Краснодарскому краю. Пользователь листает ленту мест, сохраняет понравившиеся — и на основе его интересов ИИ строит персональный маршрут с расписанием, жильём и трансфером.
+Kraeved is a social travel service that helps people discover wineries, farms, nature routes, cultural spots, guest houses, and other less obvious destinations. Users browse a visual feed, save places they like, publish impressions, and generate a personalized route based on their interests.
 
-Разработан за 48 часов в рамках хакатона «Воронка инновационных стартапов», Краснодар, 2026.
+The project was built as a hackathon MVP for the "Voronka Innovatsionnykh Startapov" event in Krasnodar, 2026.
 
----
+## What It Does
 
-## Зачем это нужно
+- Shows a feed of travel posts with photos, tags, likes, and saved places.
+- Provides user authentication with JWT access tokens.
+- Stores locations, posts, users, and tags in PostgreSQL.
+- Supports file uploads through MinIO, using an S3-compatible storage flow.
+- Displays locations and generated routes on Yandex Maps.
+- Lets users create posts, attach images, pick existing locations, or place coordinates manually.
+- Includes demo seed data for tags, locations, posts, and test accounts.
 
-**Для путешественников:** найти нестандартные места в крае сложно — всё поисковики показывают одно и то же. Краевед помогает открывать фермы, винодельни, глэмпинги и природные маршруты, о которых не пишут в путеводителях, и строит из них готовый тур под конкретного человека.
+## Product Idea
 
-**Для малого бизнеса:** небольшая ферма или глэмпинг не имеет бюджета на рекламу. Краевед приводит целевых гостей через алгоритм — без холодной рекламы.
+For travelers, the app solves the "same obvious places everywhere" problem. Instead of only showing standard tourist routes, Kraeved surfaces small local businesses, wineries, farms, caves, waterfalls, mountain routes, and personal recommendations from other users.
 
----
+For local businesses, the app is a lightweight discovery channel. A small farm, winery, guest house, or guide can appear in routes when the user's interests match the place.
 
-## Как это работает
+## User Flow
 
-1. Регистрируешься и проходишь онбординг — листаешь атмосферные фото, система изучает вкусы
-2. В ленте появляются посты о локациях — лайкаешь, сохраняешь
-3. Система накапливает профиль предпочтений и предлагает создать маршрут
-4. ИИ строит тур: локации по часам, жильё через Суточно.ру, трансфер через Яндекс Go
-5. Всё бронируется в один клик прямо внутри сервиса
+1. A user registers or logs in.
+2. The user explores the feed and saves interesting posts or places.
+3. The app builds a preference profile from onboarding choices and interactions.
+4. The route screen generates a suggested trip with places, timing, transport context, and booking links.
+5. The map screen shows saved places, user posts, and route points.
 
----
+## Tech Stack
 
-## Стек технологий
+| Layer | Technologies |
+| --- | --- |
+| Frontend | Vanilla JavaScript, HTML5, CSS3 |
+| Maps | Yandex Maps API 2.1 |
+| Backend | Python 3.11, FastAPI, SQLAlchemy 2 async |
+| Database | PostgreSQL 16 |
+| File storage | MinIO, S3-compatible API |
+| Migrations | Alembic |
+| Auth | JWT bearer tokens, Passlib, bcrypt |
+| Infrastructure | Docker, Docker Compose |
 
-| Слой | Технологии |
-|---|---|
-| Фронтенд | Vanilla JS, HTML5, CSS3, Яндекс Карты API 2.1 |
-| Бэкенд | Python 3.11, FastAPI, SQLAlchemy 2 (async) |
-| База данных | PostgreSQL 16 |
-| Хранилище файлов | MinIO (S3-совместимый) |
-| Миграции | Alembic |
-| Инфраструктура | Docker, Docker Compose |
+## Repository Structure
 
----
-
-## Структура репозитория
-
-```
+```text
 .
-├── backend/                  # FastAPI-приложение
-│   ├── app/
-│   │   ├── api/v1/           # Эндпоинты (auth, posts, locations, files)
-│   │   ├── core/             # Конфиг, безопасность, зависимости
-│   │   ├── db/               # Сессия БД, базовые классы
-│   │   ├── models/           # SQLAlchemy-модели (User, Location, Post, Tag)
-│   │   ├── schemas/          # Pydantic-схемы
-│   │   ├── services/         # Бизнес-логика (location_service, minio_service)
-│   │   ├── exceptions.py     # Кастомные исключения
-│   │   ├── seed.py           # Наполнение БД демо-данными
-│   │   └── main.py           # Точка входа
-│   ├── alembic/              # Миграции БД
-│   ├── Dockerfile
-│   └── pyproject.toml
-├── frontend/                 # Клиентская часть (SPA без фреймворка)
-│   ├── js/
-│   │   ├── api.js            # Обёртки над API-запросами
-│   │   ├── map.js            # Яндекс Карты: лента и карта тура
-│   │   ├── feed.js           # Лента публикаций
-│   │   ├── tour.js           # Генерация и отображение маршрута
-│   │   ├── create-post.js    # Создание поста
-│   │   ├── location-modal.js # Модалка локации + поиск при создании поста
-│   │   ├── auth.js           # Авторизация
-│   │   ├── profile.js        # Профиль и избранное
-│   │   ├── state.js          # Глобальный стейт
-│   │   ├── data.js           # Статические данные (демо-локации, цвета)
-│   │   └── config.js         # API_BASE, ключ Яндекс Карт
-│   └── index.html
-└── docker-compose.yml
+|-- backend/
+|   |-- app/
+|   |   |-- api/v1/           # FastAPI routers: auth, posts, locations, files
+|   |   |-- core/             # Settings, security, dependencies, enums
+|   |   |-- db/               # SQLAlchemy base and async session setup
+|   |   |-- models/           # SQLAlchemy models: User, Location, Post, Tag
+|   |   |-- schemas/          # Pydantic request and response schemas
+|   |   |-- services/         # Business logic and MinIO integration
+|   |   |-- exceptions.py     # Shared API exceptions
+|   |   |-- main.py           # FastAPI application entry point
+|   |   `-- seed.py           # Demo data loader
+|   |-- alembic/              # Database migrations
+|   |-- Dockerfile
+|   `-- pyproject.toml
+|-- frontend/
+|   |-- css/
+|   |   `-- styles.css
+|   |-- js/
+|   |   |-- api.js            # API client wrappers
+|   |   |-- auth.js           # Login, registration, token session restore
+|   |   |-- create-post.js    # Post creation modal
+|   |   |-- feed.js           # Feed rendering and filters
+|   |   |-- location-modal.js # Location modal and post-location search
+|   |   |-- map.js            # Yandex Maps views
+|   |   |-- post-modal.js     # Full post viewer
+|   |   |-- profile.js        # User profile and saved places
+|   |   |-- state.js          # Shared frontend state
+|   |   |-- tour.js           # Route generation UI
+|   |   `-- router.js         # SPA navigation
+|   `-- index.html
+|-- api.json                 # Exported OpenAPI schema snapshot
+`-- docker-compose.yml
 ```
 
----
+## Quick Start
 
-## Быстрый старт
+### Requirements
 
-### Требования
-
-- Docker и Docker Compose
+- Docker and Docker Compose
 - Git
 
-### Запуск
+### Run the Project
 
 ```bash
-# 1. Клонировать репозиторий
-git clone <url>
-cd kraevеd
-
-# 2. Запустить инфраструктуру
+git clone <repo-url>
+cd kraeved
 docker compose up -d
-
-# 3. Применить миграции
 docker compose exec backend alembic upgrade head
-
-# 4. Залить демо-данные (локации, теги, тестовые пользователи)
 docker compose exec backend python -m app.seed
 ```
 
-После этого открыть `frontend/index.html` в браузере (или раздать через любой статический сервер).
+Then open `frontend/index.html` in a browser, or serve the `frontend/` directory with any static file server.
 
-API доступен на `http://localhost:8000`, документация — `http://localhost:8000/docs`.
+Useful local URLs:
 
-### Переменные окружения
+- API: `http://localhost:8000`
+- Swagger UI: `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/health`
+- MinIO API: `http://localhost:9000`
+- MinIO console: `http://localhost:9001`
 
-Все настройки задаются через `docker-compose.yml`. Для изменения ключей создайте файл `.env` в корне:
+## Configuration
+
+The Docker setup defines the required development environment variables in `docker-compose.yml`.
+
+Important backend variables:
 
 ```env
-SECRET_KEY=your-secret-key
-MINIO_ROOT_USER=minioadmin
-MINIO_ROOT_PASSWORD=minioadmin
+DATABASE_URL=postgresql+asyncpg://kraytour:kraytour@postgres:5432/kraytour
+SECRET_KEY=your_secret_key_here
+ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=15
+MINIO_ENDPOINT=minio:9000
+MINIO_PUBLIC_URL=http://localhost:9000
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_BUCKET_NAME=kraytour
+MINIO_SECURE=false
 ```
 
----
+The frontend API base URL is configured in `frontend/js/config.js`:
 
-## API
+```js
+const API_BASE = 'http://localhost:8000/api/v1';
+```
 
-Полная интерактивная документация доступна по адресу `http://localhost:8000/docs` после запуска.
+## API Overview
 
-Основные группы эндпоинтов:
+Interactive API documentation is available at `http://localhost:8000/docs` after the backend starts.
 
-| Группа | Префикс | Описание |
-|---|---|---|
-| Авторизация | `/api/v1/auth` | Регистрация, вход, профиль |
-| Лента | `/api/v1/posts` | CRUD постов, лайки |
-| Локации | `/api/v1/locations` | Просмотр, создание, теги |
-| Файлы | `/api/v1/files` | Загрузка фото в MinIO |
+| Group | Prefix | Purpose |
+| --- | --- | --- |
+| Auth | `/api/v1/auth` | Register, login, current user, logout |
+| Posts | `/api/v1/posts` | Feed posts, create posts, update/delete, likes |
+| Locations | `/api/v1/locations` | Location list, details, tags, create/update/delete |
+| Files | `/api/v1/files` | Upload media to MinIO and resolve file URLs |
 
----
+## Demo Accounts
 
-## Демо-аккаунты
+Run `python -m app.seed` inside the backend container to create demo users.
 
-После запуска `python -m app.seed` в системе создаются тестовые пользователи:
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | `admin@kraytour.ru` | `Admin1234` |
+| Business seller | `seller@kraytour.ru` | `Seller1234` |
+| Traveler | `buyer1@kraytour.ru` | `Buyer1234` |
+| Traveler | `buyer2@kraytour.ru` | `Buyer1234` |
 
-| Роль | Email | Пароль |
-|---|---|---|
-| Администратор | `admin@kraytour.ru` | `Admin1234` |
-| Продавец (бизнес) | `seller@kraytour.ru` | `Seller1234` |
-| Покупатель | `buyer1@kraytour.ru` | `Buyer1234` |
+## Development Notes
 
+- The backend runs with `uvicorn app.main:app --reload` in Docker.
+- Alembic migrations live in `backend/alembic/versions`.
+- Seed data is idempotent: rerunning `python -m app.seed` should not duplicate existing tags, users, locations, or posts.
+- Uploaded public media files are served through MinIO URLs.
+- The frontend is a framework-free SPA, so it can be opened directly as a static page during local development.
 
----
+## Team
 
-## Команда
-
-Разработано командой «Код Шрёдингера» на хакатоне «Воронка инновационных стартапов», Краснодар, март 2026.
+Developed by the Code Schrodinger team for the "Voronka Innovatsionnykh Startapov" hackathon in Krasnodar, 2026.

@@ -6,7 +6,7 @@ from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/files", tags=["files"])
 
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50 MB
+MAX_FILE_SIZE = 50 * 1024 * 1024  # Maximum upload size: 50 MB.
 
 ALLOWED_EXTENSIONS = {
     "jpg", "jpeg", "png", "gif", "webp",

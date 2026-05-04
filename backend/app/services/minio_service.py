@@ -28,7 +28,7 @@ class MinioService:
         if not self.client.bucket_exists(self.bucket):
             self.client.make_bucket(self.bucket)
 
-    # ====================== UPLOAD ======================
+    # Upload helpers.
     async def upload_file(self, file: UploadFile, contents: bytes) -> str:
         """Загружает файл и возвращает object_name (имя файла в MinIO)."""
         content_type = file.content_type or "application/octet-stream"
@@ -49,7 +49,7 @@ class MinioService:
             content_type=content_type,
         )
 
-    # ====================== URL ======================
+    # URL helpers.
     def get_file_url(self, object_name: str) -> str:
         """Основной метод: возвращает правильную публичную ссылку."""
         if not object_name:
@@ -64,12 +64,12 @@ class MinioService:
 
     def get_permanent_url(self, object_name: str) -> str:
         """Постоянная публичная ссылка (для картинок и видео)"""
-        # Используем публичный URL из настроек, если он есть
+        # Use the configured public URL when available.
         if hasattr(settings, "MINIO_PUBLIC_URL") and settings.MINIO_PUBLIC_URL:
             base = settings.MINIO_PUBLIC_URL.rstrip("/")
             return f"{base}/{self.bucket}/{object_name.lstrip('/')}"
         
-        # Fallback для разработки
+        # Fall back to the local development URL.
         return f"http://localhost:9000/{self.bucket}/{object_name.lstrip('/')}"
 
     def get_presigned_url(self, object_name: str, expires: int = 86400) -> str:
@@ -80,7 +80,7 @@ class MinioService:
             expires=timedelta(seconds=expires),
         )
 
-    # ====================== ПРОЧИЕ МЕТОДЫ ======================
+    # Additional helpers.
     async def file_exists(self, object_name: str) -> bool:
         return await asyncio.to_thread(self._file_exists_sync, object_name)
 
